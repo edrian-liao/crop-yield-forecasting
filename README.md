@@ -65,7 +65,7 @@ crop-yield-forecasting/
 | ESA WorldCover mask | ESA WorldCover 10m (2020/2021) | Class 40 = cropland |
 | Rice crop mask | GEE custom asset (not yet published crop mask for India) | Class 2 = rice |
 | ERA5 climate | Copernicus/ECMWF | Monthly aggregates Jul–Nov |
-| District yield | DES India | Kharif rice, kg/ha, district level |
+| District yield | UPAG India | Kharif rice, kg/ha, district level |
 | District boundaries | GAUL Level 2 | Punjab: 22 districts, MP: 53 districts |
 
 ---
