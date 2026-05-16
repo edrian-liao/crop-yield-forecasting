@@ -34,7 +34,7 @@ crop-yield-forecasting/
 │   ├── §6  SHAP analysis           # TreeExplainer beeswarm + mean |SHAP| bar chart
 │   └── §7  MP sensitivity (−2022)  # Reruns MP excl. anomalous 2022–23 season
 │
-├── data/
+├── data/ (not uploaded due to storage constraints)
 │   ├── gcvi/                       # Peak GCVI TIFs — naming: peak_gcvi_kharif_{year}_{region}_{mask}.tif
 │   ├── yield/                      # DES district yield CSVs (2013–2025, multi-year files)
 │   ├── processed/                  # ERA5 wide-format feature CSVs (one per region)
@@ -61,10 +61,10 @@ crop-yield-forecasting/
 
 | Dataset | Source | Notes |
 |---|---|---|
-| Peak GCVI TIFs | Google Earth Engine (Sentinel-2) | Exported per year/region/mask condition |
+| Peak GCVI TIFs | Google Earth Engine (NASA HLS) | Exported per year/region/mask condition |
 | ESA WorldCover mask | ESA WorldCover 10m (2020/2021) | Class 40 = cropland |
-| Rice crop mask | GEE custom asset (Jordi) | Class 2 = rice |
-| ERA5 climate | Copernicus/ECMWF via GEE | Monthly aggregates Jul–Nov |
+| Rice crop mask | GEE custom asset (not yet published crop mask for India) | Class 2 = rice |
+| ERA5 climate | Copernicus/ECMWF | Monthly aggregates Jul–Nov |
 | District yield | DES India | Kharif rice, kg/ha, district level |
 | District boundaries | GAUL Level 2 | Punjab: 22 districts, MP: 53 districts |
 
