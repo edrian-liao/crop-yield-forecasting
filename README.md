@@ -1,72 +1,131 @@
 # Crop Yield Forecasting — Rice, Kharif Season, India
 
-Satellite-based district-level rice yield forecasting for **Punjab** and **Madhya Pradesh**, India. The project tests whether progressively tighter cropland masks applied to peak GCVI (Green Chlorophyll Vegetation Index) improve yield prediction R² when combined with ERA5 climate features.
+Satellite-based district-level rice yield analysis across **30 Indian states**. The project
+tests whether cropland masks applied to peak GCVI (Green Chlorophyll Vegetation Index)
+improve the correlation with government rice yield statistics, and investigates *why* that
+improvement varies by state.
 
 ---
 
-## Experiment Design
+## Current state of the analysis
 
-| Dimension | Details |
+| Question | Status |
 |---|---|
-| **Regions** | Punjab, Madhya Pradesh |
-| **Crop / Season** | Rice, Kharif |
-| **GCVI conditions** | `none` (ERA5 only), `raw` (no mask), `esa` (ESA WorldCover cropland), `crop` (rice crop mask) |
-| **Models** | Ridge Regression, Random Forest, Gradient Boosting |
-| **Features** | ERA5 monthly climate Jul–Nov: precipitation, PET, 2m temperature, skin temperature, soil moisture, LAI + district-level mean peak GCVI |
-| **Validation** | Leave-One-Group-Out CV by year (12 folds, 2013–2024) |
-| **Metric** | R², RMSE (mean ± std across folds) |
-| **Total experiments** | 2 regions × 4 conditions × 3 models = 24 |
+| Does masking improve GCVI–yield correlation? | **Yes, pooled at state level.** Crop mask: mean Δr **+0.44**, improves 23/27 states. ESRI: +0.12, 18/30. |
+| Does it improve *within* districts, year to year? | **Barely.** Mean district Δr ≈ 0, ~56% improve. See `district_level_delta.ipynb`. |
+| What explains the between-state variance? | **Unresolved.** Best non-circular predictor is census rice share (r = −0.51, p = 0.007) but it fails Bonferroni and is sensitive to denominator choice. |
+| Is map-derived crop entropy a valid predictor? | **No — circular.** It shares its source with the mask. See caveat below. |
+
+### ⚠ Two findings that constrain interpretation
+
+**1. Map-derived entropy is circular.** `map_entropy_cv` predicts mask improvement at
+r = +0.65 (p < 0.001), the strongest result in the study — but it is computed from the
+*same crop map* whose mask produces the outcome. Census-derived entropy, measuring actual
+cropping, is **uncorrelated with it** (district level r = −0.009, n = 651) and predicts
+nothing. Do not report map entropy as an agronomic finding.
+
+**2. The state-level design is underpowered.** With n = 27 states, 80% power requires
+|r| ≥ 0.52. ~12 predictors have been tested, so P(≥1 false positive) ≈ 46%. Only the
+circular predictor survives Bonferroni. Sub-state resolution is where the power is
+(n = 650 districts → detectable |r| ≥ 0.11).
 
 ---
 
-## Repository Structure
+## Repository structure
 
 ```
 crop-yield-forecasting/
 │
-├── experiment_masks.ipynb          # Main experiment notebook
-│   ├── §1  Config                  # Regions, masks, name fixes
-│   ├── §2  Helper functions        # extract_gcvi, load_era5, load_yield, run_experiment
-│   ├── §2b Sanity checks           # TIF counts, GCVI stats, panel join checks
-│   ├── §3  Run all experiments     # Punjab + MP × 4 masks × 3 models
-│   ├── §4  Summary table           # Mean ± std R² / RMSE across folds
-│   ├── §5  R² plot                 # Per-fold LOGO-CV line chart (2×3 grid)
-│   ├── §6  SHAP analysis           # TreeExplainer beeswarm + mean |SHAP| bar chart
-│   └── §7  MP sensitivity (−2022)  # Reruns MP excl. anomalous 2022–23 season
+├── experiment_masks.ipynb              # Main modelling experiment (Punjab + MP)
+│                                       #   ⚠ references deleted data/*_districts_GAUL/ dirs
 │
-├── data/ (not uploaded due to storage constraints)
-│   ├── gcvi/                       # Peak GCVI TIFs — naming: peak_gcvi_kharif_{year}_{region}_{mask}.tif
-│   ├── yield/                      # DES district yield CSVs (2013–2025, multi-year files)
-│   ├── processed/                  # ERA5 wide-format feature CSVs (one per region)
-│   ├── era5/                       # Raw ERA5 monthly data
-│   ├── punjab_districts_GAUL/      # Punjab district shapefile (GAUL)
-│   └── mp_districts_GAUL/          # Madhya Pradesh district shapefile (GAUL)
+├── notebooks/
+│   ├── 01_data_prep/
+│   │   ├── process_gcvi_tif_files.ipynb        # GEE export -> local TIFs; per-state TIF viz
+│   │   └── crop_entropy_district_to_state.ipynb
+│   │
+│   ├── 02_mask_analysis/               # ← the active analysis
+│   │   ├── gsv_preds_exploration.ipynb         # PRIMARY: pooled state-level GCVI×yield
+│   │   ├── gsv_preds_exploration_noclass.ipynb # same, without land-cover classification
+│   │   ├── census_crop_entropy.ipynb           # entropy from govt stats + 3-basket control
+│   │   └── district_level_delta.ipynb          # per-district Δr; pooled-vs-district contrast
+│   │
+│   ├── 03_modeling/
+│   │   ├── era5_model.ipynb
+│   │   └── distribution_shift_analysis.ipynb   # ⚠ references deleted MP shapefile dir
+│   │
+│   └── archive/                        # superseded single-state exploration
 │
-└── notebooks/
-    ├── data/
-    │   ├── era5_exploration.ipynb          # ERA5 feature exploration
-    │   ├── madhyaPradesh.ipynb             # MP data exploration
-    │   ├── madhyaPradesh_ricecrop.ipynb    # MP rice yield vs peak GCVI (2024 correlation)
-    │   ├── madhyaPradesh_cropmasked.ipynb  # MP crop-masked GCVI exploration
-    │   ├── punjab_cropmasked.ipynb         # Punjab crop-masked GCVI exploration
-    │   └── process_gcvi_tif_files.ipynb    # TIF pre-processing pipeline
-    └── modeling/
-        ├── era5_model.ipynb                # ERA5-only baseline model
-        └── distribution_shift_analysis.ipynb
+├── data/                               # not version-controlled (size)
+│   ├── gcvi/                           # peak_gcvi_kharif_{year}_{state}_{mask}.tif
+│   │                                   #   34 states × 12 years × 3 masks = 1,248 files
+│   ├── yield/                          # DES district CSVs — Area/Production/Yield per crop
+│   ├── district_boundaries/            # {State}_Districts_GAUL.geojson (34)
+│   ├── crop_entropy/                   # Jordi map-derived district entropy (34 states)
+│   ├── processed/                      # ERA5 wide-format features
+│   ├── era5/                           # raw ERA5 monthly
+│   ├── census_crop_entropy_*.csv       # generated by census_crop_entropy.ipynb
+│   └── district_agreement_for_gee.csv  # census vs map-predicted area, 5 crops
+│
+└── outputs/                            # ALL figures + tables (70 files)
+    ├── gcvi_yield_correlation.csv      # per state × mask: r, p, n, coverage
+    ├── state_predictors.csv            # consolidated predictor table
+    ├── district_level_delta.csv        # per-district r_raw, r_mask, delta
+    └── *.png
 ```
+
+Notebooks live at depth 2 under `notebooks/`, so all data references are `../../data/`
+and all figures write to `../../outputs/`.
 
 ---
 
-## Data Sources
+## Masks
 
-| Dataset | Source | Notes |
+| Mask | Source | Meaning |
 |---|---|---|
-| Peak GCVI TIFs | Google Earth Engine (NASA HLS) | Exported per year/region/mask condition |
-| ESA WorldCover mask | ESA WorldCover 10m (2020/2021) | Class 40 = cropland |
-| Rice crop mask | GEE custom asset (not yet published crop mask for India) | Class 2 = rice |
-| ERA5 climate | Copernicus/ECMWF | Monthly aggregates Jul–Nov |
-| District yield | UPAG India | Kharif rice, kg/ha, district level |
-| District boundaries | GAUL Level 2 | Punjab: 22 districts, MP: 53 districts |
+| `raw` | — | no mask, all pixels |
+| `esri` | ESRI Global LULC 10m | class 5 = crops |
+| `crop` / `jordi` | Jordi `crop_map_<State>` GEE asset | `classification == 2` |
+
+`crop` and `jordi` are the **same product** under different filenames (Punjab/MP use the
+former). The Jordi raster has **6 class values (0–5)**: 5 crops + 1 non-crop/forest class.
+
+> ⚠ **Class 2 is rice, not generic cropland.** Class 2 covers 96% of Punjab's crop pixels
+> vs 89% census rice share, and 8.5% of Maharashtra's vs 10.6%. So the mask labelled
+> "Crop mask" throughout is really a *rice* mask — which is why it outperforms the generic
+> ESRI mask. Class→crop mapping is otherwise unverified.
+
+---
+
+## Data limitations
+
+`gsv_preds_exploration.ipynb` prints these on every run via `print_data_limitations()`.
+
+**4 states excluded:** Sikkim and Arunachal Pradesh (GAUL boundaries predate district
+splits — 100% and 65% of yield rows unmatchable); Delhi and Lakshadweep (no Kharif rice).
+
+**5 states partial:** Andhra Pradesh loses **38%** of yield rows to the 2022
+reorganisation; Mizoram 14%, MP 12%, Nagaland/Chhattisgarh 11%.
+
+**3 states have no crop mask:** Goa, Andaman & Nicobar, Dadra & Nagar Haveli — the Jordi
+map has **zero** pixels there.
+
+**Other:** GAUL stores Himachal's Hamirpur as `"Ham|Rpur"` (pipe character). Jammu &
+Kashmir has yield data but no GAUL 2024 boundary. Chandigarh is a single district, so its
+r is a 12-point time series, not a cross-section.
+
+---
+
+## Two Δr statistics — they disagree
+
+| Statistic | Question | Result |
+|---|---|---|
+| **Pooled** (state) | Does masked GCVI rank districts by yield better? | mean Δr **+0.44** |
+| **Per-district** | Does it track a district's year-to-year change better? | mean Δr **≈ 0** |
+
+Census rice share correlates **−0.51** with the first and **+0.46** with the second. This
+is Simpson's-paradox-shaped, not an error. Decide which question you are answering before
+quoting either number. For forecasting an unseen year, the per-district statistic applies.
 
 ---
 
@@ -78,12 +137,14 @@ pip install scikit-learn shap matplotlib seaborn
 pip install earthengine-api geemap
 ```
 
-Yield data requires access to DES India district-level crop statistics. GCVI TIFs are exported from Google Earth Engine — see `notebooks/data/process_gcvi_tif_files.ipynb` for the export pipeline.
+GCVI TIFs are exported from Google Earth Engine — see `notebooks/01_data_prep/process_gcvi_tif_files.ipynb`.
+Yield data requires access to DES India district crop statistics.
 
----
+## Order to run
 
-## Reproducing the Main Experiment
+1. `notebooks/01_data_prep/process_gcvi_tif_files.ipynb` — download TIFs from GEE
+2. `notebooks/02_mask_analysis/gsv_preds_exploration.ipynb` — writes `gcvi_yield_correlation.csv`
+3. `notebooks/02_mask_analysis/census_crop_entropy.ipynb` — writes census entropy CSVs
+4. `notebooks/02_mask_analysis/district_level_delta.ipynb` — needs step 2's CSV
 
-1. Ensure all TIFs are in `data/gcvi/` with the naming convention `peak_gcvi_kharif_{year}_{region}_{mask}.tif`
-2. Ensure ERA5 CSVs are in `data/processed/`
-3. Run `experiment_masks.ipynb` top to bottom — sanity checks (§2b) will flag any missing files before the main loop
+Steps 3 and 4 both depend on step 2's output.
