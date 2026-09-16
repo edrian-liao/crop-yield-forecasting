@@ -1,0 +1,541 @@
+================================================================================
+CROP-TYPE MASK vs RICE YIELD PREDICTION -- RESULTS SUMMARY
+Generated 2026-09-16 | RF, crop year 2022 excluded, gcvi_mean=0 rows KEPT
+Sources: outputs/state_scorecard.csv, logo_cv_all_states.csv,
+         logo_cv_trend_diagnostics.csv, district_level_delta.csv
+================================================================================
+
+1. THE THREE HEADLINE RESULTS
+--------------------------------------------------------------------------------
+  Pooled correlation      mask HELPS      ZERO  dr = +0.438  t=+5.49  p<0.0001
+                                          KEEP  dr = +0.192  t=+2.99  p=0.0061
+                                          Positive and significant either way;
+                                          ZERO inflates it 2.3x. See section 20.
+  District correlation    mask DOES NOT   dr = +0.008  p = 0.34  n = 514 districts
+                                          95% CI [-0.008, +0.024]
+                                          states equally weighted: +0.013, n = 27,
+                                            t = +0.90, p = 0.375
+                                          uncorrelated w/ pooled dr (r = -0.01)
+  Held-out prediction     mask DOES NOT   paired crop-raw median ~ 0 on all
+                                          9 model x metric combos, best p=0.080
+                                          n = 25 states, LOGO-CV by year
+
+  MIND THE UNIT. Each row above uses a different n and a different observation:
+    pooled      27 states  -- one Pearson per state over ALL its district-years
+    district   514 districts -- one Pearson per district over its ~12 YEARS,
+                  then a t-test on the 514 deltas. Years per district: 12 for 376
+                  districts, 11 for 57, 9-10 for 49, 5-8 for 32 (MIN_YEARS = 5).
+                  At n = 12 a single district's r has a Fisher-z SE of 0.333, so
+                  no individual district's delta means anything; the AVERAGE of
+                  514 of them has SE 0.008, which is what makes the null tight.
+                  514 of 669 districts survive the filters, and NONE of the 116
+                  districts with an empty-mask year is among them (section 15).
+    prediction  25 states -- median across states of per-state LOGO-CV scores
+
+  The mask improves how districts rank against each other. It does not improve
+  tracking a district over time, and it does not improve forecasts.
+
+
+2. ALL-STATE MEDIANS (RF, 25 states, 2022 excluded)
+--------------------------------------------------------------------------------
+  metric            none      raw     esri     crop
+  R2 (level)       0.157    0.229    0.220    0.221
+  R2 de-meaned     0.294    0.313    0.320    0.395
+  rank r           0.583    0.586    0.597    0.660
+
+  trend-dominated states removed (19 states)
+  R2 (level)       0.291    0.350    0.304    0.346
+  R2 de-meaned     0.520    0.547    0.522    0.538
+  rank r           0.741    0.758    0.751    0.766
+
+  NOTE: medians here are MARGINAL (taken per condition independently). They are
+  not paired and must not be read as a mask effect -- see section 3.
+
+  Report medians, never means: held-out R2 is unbounded below. Jharkhand alone
+  (-11.98) moves the cross-state MEAN R2 by ~0.55; the median by 0.04.
+
+
+3. PAIRED TEST -- crop mask vs raw GCVI (the actual comparison)
+--------------------------------------------------------------------------------
+  model   metric          median d   % states +   Wilcoxon p
+  Ridge   R2                +0.000        52%       0.634
+  Ridge   R2 de-meaned      +0.007        56%       0.113
+  Ridge   rank r            +0.015        60%       0.080
+  RF      R2                +0.003        52%       0.426
+  RF      R2 de-meaned      -0.007        40%       1.000
+  RF      rank r            -0.004        44%       0.853
+  GBR     R2                -0.001        48%       0.937
+  GBR     R2 de-meaned      +0.010        56%       0.442
+  GBR     rank r            +0.010        60%       0.241
+
+  Nothing significant. n=25. Wilcoxon, not t-test: differences are heavy-tailed.
+
+
+4. METRIC DEFINITIONS
+--------------------------------------------------------------------------------
+  R2         accuracy in kg/ha. Punishes getting the year LEVEL wrong, which
+             LOGO-CV makes structurally unavoidable (model never sees the year).
+  R2 de-mean R2 after subtracting the held-out year's mean from BOTH pred and
+             actual. Scores the within-year, cross-district pattern only.
+  rank r     Spearman r(pred, actual) within the held-out year. Ordering only.
+
+  Why it matters: Nagaland scores R2 = -1.92 but R2_dm = +0.52, rank r = +0.82.
+  Good district ranking, wrong level. Reading R2 alone discards that state.
+
+  pooled r        = one Pearson over all district-years in a state
+  year-mean r     = correlate yearly MEAN gcvi vs yearly MEAN yield (co-trending)
+  within-year r   = de-mean both by year, then correlate (cross-district signal)
+  gcvi_gain       = R2(crop) - R2(none)   does GCVI beat ERA5 alone?
+  mask_gain       = R2(crop) - R2(raw)    does the mask beat unmasked GCVI?
+
+
+5. WHAT GCVI ACTUALLY BUYS
+--------------------------------------------------------------------------------
+  gcvi_gain is positive in most states:
+    Punjab +0.211   UP +0.166   MP +0.150   Chhattisgarh +0.111
+  GCVI helps. WHICH MASK you apply does not.
+
+
+6. TREND-DOMINATED STATES (6) -- sorted by within-year r, worst first
+   flag = yield trend p < 0.05 AND |year-mean r| - |within-year r| > 0.30
+--------------------------------------------------------------------------------
+  state           pooled  yr-mean  within    R2      R2_dm   rank_r  %empty
+  Odisha           0.402    0.811  -0.020   -1.10    -0.07    0.09    0%
+  Jharkhand        0.516    0.788   0.089  -11.98    -0.11    0.12    0%
+  Uttar Pradesh    0.213    0.876   0.144    0.10     0.34    0.42   15%
+  West Bengal      0.240    0.724   0.160    0.22     0.30    0.56    0%
+  Assam            0.285    0.661   0.192   -0.25     0.09    0.36    0%
+  Bihar            0.514    0.886   0.257   -0.41    -0.01    0.10    0%
+
+  This is the EASTERN RICE BELT -- contiguous, and the same set as the earlier
+  poor-performer list. Their pooled r is built on co-trending; the cross-district
+  component is near zero. Odisha is the extreme: pooled +0.40, within-year -0.02.
+
+  Not a mask-quality problem: %empty is 0 for five of the six.
+
+  Hypotheses to test:
+    (a) DES yield reporting changed over the period. Bihar already shows 10
+        districts with <5 years of data, south-central systematically absent.
+    (b) Genuine agricultural intensification.
+    (c) GCVI trend from sensor / compositing changes.
+
+  Jharkhand worked example: yields 855 -> 3022 -> 1850 kg/ha, trend +144 kg/ha/yr
+  (p=0.046). Pooled r rose 0.36 -> 0.51 under the mask, but LOGO-CV holds out
+  whole years, deleting exactly the trend that drives that gain. Every fold
+  negative. The 0.36->0.51 improvement has no out-of-sample value.
+
+
+7. UNDERPERFORMERS THAT ARE NOT TREND-DOMINATED (R2_dm < 0.2)
+--------------------------------------------------------------------------------
+  state              %empty  note
+  Himachal Pradesh     25%   GCVI actively HURTS: gcvi_gain -0.290.
+                             Mountain terrain, tiny rice area.
+  Tripura               0%   R2 -3.10 but R2_dm -0.08: pure level failure. n=88.
+  Tamil Nadu            5%   year-mean r -0.32 vs within-year +0.21. Trend runs
+                             the OPPOSITE way (-77 kg/ha/yr). Mirror image of the
+                             eastern belt. Likely Cauvery water-year effect.
+  Andhra Pradesh        0%   within-year r -0.16: negative cross-district signal.
+  Telangana             3%   best mask_gain in this group (+0.184), R2 still -0.46.
+
+
+8. WHERE THE MASK HELPS vs HURTS (mask_gain, RF)
+--------------------------------------------------------------------------------
+  HELPS                          HURTS
+  Jharkhand     +1.796 (artifact) Nagaland      -0.166
+  Telangana     +0.184            Tamil Nadu    -0.060
+  Chhattisgarh  +0.137            Himachal      -0.059
+  Odisha        +0.132 (artifact) Haryana       -0.047
+  Madhya Pradesh+0.097            Manipur       -0.031
+  Karnataka     +0.044            Punjab        -0.030
+
+  No pattern in %empty, rice share, or map F1 explains this split. Consistent
+  with noise around zero, which is what the Wilcoxon says.
+
+
+9. TWO NEGATIVE RESULTS WORTH KEEPING
+--------------------------------------------------------------------------------
+  CIRCULARITY. Map-derived entropy CV correlates +0.65 with mask improvement,
+  but census-derived entropy gives -0.18 (null). At district level the two
+  entropies are uncorrelated (r = -0.009, n = 651), while two independent census
+  baskets agree with each other (r = +0.77). The +0.65 is a property of the crop
+  map, not of Indian agriculture.
+
+  MAP ACCURACY DOES NOT PREDICT BENEFIT. Assam has the best rice F1 (0.953) and
+  low dr. Rajasthan has f1_Rice = 0.000 with 29 training points and the highest
+  dr (+1.079). Training-point count vs dr: r = -0.27, p = 0.22.
+
+
+10. THE ZERO-GCVI EXPERIMENT (tested, reverted)
+--------------------------------------------------------------------------------
+  Districts with no pixels under a mask are stored as gcvi_mean = 0. Tested
+  dropping those rows from a common panel (removed from all 4 conditions if any
+  mask is empty there, to keep the comparison controlled).
+
+  Result: EVERY condition got worse, including none.
+    R2 median     keep  0.157 0.229 0.220 0.221
+                  drop  0.133 0.131 0.134 0.133
+
+  gcvi_mean = 0 marks "this district grows almost no rice", which is real
+  information about its yield -- a rice-presence indicator carried in the GCVI
+  column. Dropping it deletes that signal. Zeros are KEPT.
+  DROP_ZERO_GCVI = True in logo_cv_all_states.ipynb reproduces the drop run.
+
+
+11. DATA LIMITATIONS STANDING
+--------------------------------------------------------------------------------
+  - Crop year 2022-23 (year == 2022) excluded throughout: noisy, and excluding
+    it flips Madhya Pradesh from mixed to uniformly positive.
+  - Bihar: 10 districts with <5 years of DES yield, south-central absent.
+  - n = 27 states -> minimum detectable |r| ~ 0.52. With ~10 predictors,
+    P(at least one false positive) ~ 40%. State-level predictor correlations
+    are underpowered.
+  - Empty Jordi masks: Goa / Andaman / Dadra 100%, Gujarat 70%, Rajasthan 52%,
+    Nagaland 46%, Uttarakhand 39%, MP 26%, Maharashtra 22%.
+  - Figures compare RF only. Taking the best model per state per condition would
+    let model selection appear as a mask effect.
+
+
+12. DEFENSIBLE CONCLUSION
+--------------------------------------------------------------------------------
+  The crop-type mask reliably improves the CROSS-SECTIONAL correlation between
+  peak GCVI and rice yield, but does not improve out-of-sample yield prediction.
+  The correlation gain is largely co-trending over time plus a rice-presence
+  effect that raw GCVI already captures. The apparent link between mask benefit
+  and crop diversity is an artifact of the map itself.
+
+
+13. SUGGESTED NEXT CUTS
+--------------------------------------------------------------------------------
+  1. Treat the eastern belt as one unit. Check whether the yield trend is a
+     reporting artifact by comparing DES against an independent source. If it
+     is, detrending is legitimate and their R2 becomes interpretable.
+  2. Detrended rerun: regress yield on year within district, run LOGO-CV on the
+     residuals. Direct test of whether anything survives, all 25 states at once.
+  3. Negative-within-year-r group (Tamil Nadu, Andhra Pradesh, Maharashtra).
+     Maharashtra is diagnosed: rice 9.7% of kharif area, 5 districts with 12/12
+     empty-mask years, r(rice area, district dr) = +0.58. Check whether AP and
+     TN share that concentration problem.
+
+
+14. POOLED DELTA-R BY STATE  (recomputed after the section 15 fix)
+--------------------------------------------------------------------------------
+  SOURCE: outputs/gcvi_yield_correlation.csv, regenerated 2026-09-16 with the
+  yield-zeroing removed. 2022 still INCLUDED here (unlike the LOGO-CV results),
+  so these are not strictly comparable to sections 2-8.
+
+  state              r_raw  r_mask   delta      n
+  manipur           -0.711  +0.299  +1.010     94
+  rajasthan         -0.234  +0.542  +0.776    243
+  uttarakhand       +0.108  +0.648  +0.540    156
+  mizoram           -0.220  +0.286  +0.506     96
+  chhattisgarh      +0.177  +0.604  +0.427    271
+  nagaland          -0.294  +0.112  +0.406    132
+  karnataka         -0.080  +0.303  +0.383    347
+  wb                -0.079  +0.244  +0.323    223
+  kerala            -0.277  +0.026  +0.303    156
+  meghalaya         -0.355  -0.076  +0.279    113
+  mp                +0.210  +0.484  +0.274    570
+  telangana         +0.180  +0.434  +0.254    311
+  andhra_pradesh    -0.236  +0.018  +0.254    156
+  odisha            +0.206  +0.408  +0.202    311
+  puducherry        +0.391  +0.548  +0.157     36
+  jharkhand         +0.357  +0.506  +0.149    280
+  himachal_pradesh  +0.016  +0.165  +0.149    131
+  gujarat           +0.043  +0.176  +0.133    247
+  assam             +0.233  +0.261  +0.028    352
+  bihar             +0.480  +0.506  +0.026    314
+  tamil_nadu        +0.112  +0.075  -0.037    382
+  punjab            +0.628  +0.583  -0.045    264
+  tripura           -0.193  -0.251  -0.058     96
+  chandigarh        -0.103  -0.185  -0.082     12
+  up                +0.363  +0.219  -0.144    888
+  haryana           +0.729  +0.389  -0.340    250
+  maharashtra       +0.437  -0.254  -0.691    289
+
+  POOLED DELTA-R: mean +0.192, median +0.202, 74% of states positive (20/27),
+  t = +2.98 p = 0.0061, Wilcoxon p = 0.0042, n = 27.
+  Before the fix: mean +0.438, 85% positive.
+
+  P-VALUES. The per-state p in gcvi_yield_correlation.csv is ~0.0000 almost
+  everywhere and should not be quoted: n = district-years (264 for Punjab, 888
+  for UP) treats 22 districts x 12 years as independent observations. Districts
+  share weather and reporting; years share national conditions.
+
+  Steiger's test for two DEPENDENT correlations (both share the yield variable;
+  the two GCVI series correlate at median r = 0.33):
+    n = district-years -> 20/26 states significant
+    n = districts      ->  5/26 states significant
+  Under clustering only Rajasthan, Chhattisgarh, MP, Haryana and Maharashtra
+  survive -- and Haryana (-0.340) and Maharashtra (-0.691) are significant in
+  the NEGATIVE direction.
+
+  SPARSITY MECHANISM: RETRACTED. An earlier version of this section reported
+  r(delta_r, %empty) = +0.62 (p=0.0006) and r(delta_r, retention) = -0.50
+  (p=0.008), arguing the mask 'helps' by discarding pixels. Both vanish on the
+  corrected data: +0.27 (p=0.19) and -0.22 (p=0.27). That mechanism was an
+  artifact of the section 15 bug, not a property of sparse masks.
+
+  %empty vs retention -- keep these distinct:
+    %empty    = fraction of district-YEARS where the mask retains NO pixels.
+    retention = fraction of PIXELS the mask keeps.
+  Trend-dominated states have %empty = 0 but retention 0.31-0.59: real masks,
+  plenty of rice. Nagaland and Mizoram have retention < 0.01 while the census
+  says rice is 76-78% of their 5-crop basket -- that is MAP FAILURE. In
+  Rajasthan and Gujarat (rice 3% and 23% by census) low retention is genuine
+  absence of rice. Same number, two different meanings.
+
+================================================================================
+
+15. THE YIELD-ZEROING BUG
+--------------------------------------------------------------------------------
+  In gsv_preds_exploration.ipynb cell e31dd4ab and district_level_delta.ipynb
+  cell 3:
+
+      merged.loc[merged['gcvi_mean'] == 0, 'yield_kg_ha'] = 0
+
+  Where a mask retains no pixels, YIELD IS OVERWRITTEN WITH ZERO. Those
+  district-years become the point (0, 0). Two variables both pinned at zero in
+  the same rows correlate strongly for that reason alone.
+
+  Worst cases (stored r_mask vs correctly computed r_mask):
+    Nagaland        0.950 -> 0.112   (46% of district-years empty)
+    Uttar Pradesh   0.879 -> 0.219   (15%)
+    Manipur         0.617 -> 0.299   (25%)
+    Rajasthan       0.845 -> 0.542   (52%)
+  UP's delta_r flips sign entirely: +0.516 -> -0.144.
+
+  AFFECTED: outputs/gcvi_yield_correlation.csv, state_predictors.csv (delta,
+  rel), district_level_delta.csv, and every figure and statement derived from
+  pooled delta_r -- including the '+0.44, 23/27 states' headline in section 1.
+
+  NOT AFFECTED: all LOGO-CV results (sections 2, 3, 5-8). build_panel() in
+  logo_cv_all_states.ipynb never zeroes yield; it keeps gcvi_mean = 0 as a
+  feature value, which is the intended behaviour (section 10). The district-
+  level delta of +0.008 is also unaffected in practice: all 116 districts with
+  an empty-mask year were excluded by the >=5-year and zero-variance filters,
+  so the zeroing never fired on any of the 514 districts analysed.
+
+  RESOLUTION (2026-09-16). The line was REMOVED from all three notebooks
+  (gsv_preds_exploration, gsv_preds_exploration_noclass, district_level_delta)
+  and replaced with a comment. Decision: keep gcvi_mean = 0 and keep the REAL
+  yield; drop no rows. This matches the treatment in logo_cv_all_states.ipynb
+  (section 10) -- a zero means "no rice pixels retained", which is a genuine
+  rice-presence signal, not a missing value.
+
+  The zero-variance guard is retained: a mask that is empty across an ENTIRE
+  state leaves gcvi_mean constant at 0, so r is undefined there.
+
+  AFTER RERUNNING:
+    pooled delta_r     +0.438 -> +0.192  (74% of states, p = 0.0061)
+    Nagaland  r_mask    0.950 -> 0.112
+    Uttar Pradesh delta +0.516 -> -0.144   (sign flip)
+    Rajasthan r_mask    0.845 -> 0.542
+    Manipur   r_mask    0.617 -> 0.299
+    Haryana   delta     +0.119 -> -0.340   (sign flip)
+    Maharashtra delta   -0.064 -> -0.691
+    district-level delta  UNCHANGED at +0.0079 (p = 0.344), 514 districts, and
+      still zero analysed districts with an empty-mask year -- confirming the
+      line never fired there.
+
+  STILL STALE: outputs/state_predictors.csv (delta, rel) and everything derived
+  from it -- the entropy analysis, the effect-size bar chart, the predictor
+  correlation matrix, and the India delta_r maps. Those notebooks have not been
+  rerun against the corrected correlations.
+================================================================================
+
+
+16. VARIABLES EXPLAINING MASK IMPROVEMENT
+--------------------------------------------------------------------------------
+  Target: relative improvement rel = delta / (1 - r_raw), n = 26-27 states.
+
+  predictor                             src              r
+  MAP crop entropy CV                   MAP          +0.65*
+  Rice share (rice / 5-crop area)       CENSUS       -0.51*
+  Mask retention (fraction of px kept)  MAP          -0.48*
+  MAP crop entropy mean                 MAP          -0.47*
+  Baseline r (raw GCVI vs yield)        MECHANICAL   -0.39*
+  Rice share CV (across districts)      CENSUS       +0.39
+  Census crop entropy mean              CENSUS       +0.22
+  Rice share (rice / total land area)   CENSUS       -0.22
+  Rice share (rice / all 30 crops)      CENSUS       -0.22
+  Census crop entropy CV                CENSUS       -0.18
+
+  * = p < 0.05 uncorrected. Figure: outputs/predictor_effect_sizes.png
+
+  PARKED. These values come from the ZERO setting (yield overwritten with 0
+  where the mask was empty -- see section 15). Recomputations under KEEP and
+  COMMON were removed from this table on request and will be revisited later.
+  They remain in outputs/predictor_correlations_3variants.csv. Headline: under
+  both corrected variants every starred predictor above falls to near zero
+  except Baseline r, which strengthens.
+
+================================================================================
+
+17. POOLED DELTA-R UNDER THE THREE HANDLINGS  (tabled, not adopted)
+--------------------------------------------------------------------------------
+  variant    mean    median   %states+    n       t        p
+  ZERO      +0.438        -       85%    27       -        -
+  KEEP      +0.192   +0.202      74%    27   +2.99   0.0061
+  COMMON    +0.147   +0.156      81%    27   +3.39   0.0022
+
+  COMMON gives a SMALLER mean but MORE states positive and a LOWER p -- the
+  effect becomes more consistent once the empty-mask rows stop adding noise in
+  both directions. Cost: Goa, Andaman and Dadra & Nagar Haveli disappear
+  entirely (100% empty masks); Gujarat loses 52% of rows, Nagaland 46%,
+  Uttarakhand 39%, Rajasthan 37%, MP 21%, Maharashtra 21%, UP 15%. Fifteen
+  states are untouched (0% empty).
+
+  States that move most between KEEP and COMMON:
+    state           %dropped   delta KEEP   delta COMMON
+    Manipur            21%        +1.010        +0.449
+    Rajasthan          37%        +0.776        +0.412
+    Uttarakhand        39%        +0.540        +0.030
+    Nagaland           46%        +0.406        +0.160
+    Gujarat            52%        +0.133        +0.016
+    Karnataka          21%        +0.382        +0.535
+    Maharashtra        21%        -0.691        -0.355
+    Uttar Pradesh      15%        -0.144        +0.078   (sign flip)
+
+  Uttarakhand is the cleanest illustration: its RAW r rises from 0.108 to 0.544
+  once empty-mask rows are removed, so its entire +0.54 'improvement' was the
+  mask scoring against a baseline those rows had degraded.
+
+  DECISION: KEEP remains the setting in the notebooks. COMMON is documented
+  here and in outputs/predictor_correlations_3variants.csv but is NOT applied.
+  Data: scratchpad drop_variant.csv.
+
+18. PUNJAB AND MADHYA PRADESH BY MASK  (the two reference states)
+--------------------------------------------------------------------------------
+  Punjab  n=264, 22 districts, 0% empty mask -> KEEP and COMMON identical
+    raw   r = +0.628     esri  r = +0.650     crop  r = +0.583
+    ESRI cropland is best; the RICE mask is worse than no mask at all.
+
+  Madhya Pradesh  n=570 -> 451, 52 districts, 20.9% empty mask
+                 KEEP    COMMON
+    raw        +0.210    +0.060   (p = 0.21, not significant)
+    esri       +0.155    +0.057   (p = 0.23, not significant)
+    crop       +0.484    +0.198   (p = 2e-05)
+
+  Under COMMON, raw and ESRI GCVI have NO significant relationship with MP
+  yield; the rice mask is the only one that retains a real one. This is the
+  clearest single case of the mask doing what it is meant to do -- but the
+  effect is half what KEEP reports, because the dropped rows are low-rice
+  districts sitting at (gcvi 0, low yield), which line up 'no rice -> low
+  yield' and inflate the correlation.
+
+  LOGO-CV agrees on the ordering in both states (RF, 2022 excluded):
+    Punjab   R2  none 0.157   raw 0.398   esri 0.404   crop 0.368
+    MP       R2  none 0.148   raw 0.145   esri 0.137   crop 0.172
+================================================================================
+
+
+19. FIGURE INDEX  (all in outputs/)
+--------------------------------------------------------------------------------
+  predictor_effect_sizes.png            §16  variables explaining mask improvement (ZERO setting)
+  logo_cv_summary.png                   §2-4 held-out R2/R2_dm/rank r by condition, trend states marked
+  logo_cv_by_state.png                  §4   per-state R2 de-meaned, * = trend-dominated
+  panel2x2_rajasthan.png                §14  2x2: training pts / masked GCVI / dr / census rice yield
+  panel2x2_karnataka.png                §14  same, Karnataka
+  panel2x2_uttarakhand.png              §14  same, Uttarakhand
+  panel2x2_up.png                       §14  same, Uttar Pradesh
+  pooled_vs_district_delta.png          §1   pooled dr vs mean district dr, by state
+  district_delta_distribution.png       §1   distribution of the 514 district dr values
+  poor_states_district_maps.png         §6-7 per-district dr maps, poor performers
+  poor_states_training_points.png       §7   RF training points, poor performers
+  poor_states_district_r.png            §7   district-level r scatter, poor performers
+  poor_states_map_quality.png           §9   map-quality metrics vs dr
+  rice_census_maps_maharashtra.png      §7   Maharashtra rice area/yield/CV vs dr
+  rice_census_maps_assam.png            §7   Assam rice area/yield/CV vs dr
+  gcvi_yield_heatmap.png                §14  pooled r by state x mask
+  map_delta_by_state.png                §14  India map of pooled dr
+  census_vs_map_entropy.png             §9   census vs map entropy, the circularity check
+
+  other figures present (per-state violins, TIF visualisations, scatters):
+  census_entropy_vs_rel_improvement.png, cv_vs_entropy_rel_improvement.png, delta_r2_vs_agreement.png, delta_r2_vs_baseline.png, delta_vs_agreement.png, delta_vs_baseline.png  ... and 69 more
+
+  STALE FIGURES -- built on the ZERO setting (see section 15) and not regenerated:
+    predictor_effect_sizes.png, map_delta_by_state.png, gcvi_yield_heatmap.png,
+    and every entropy figure (entropy_baskets_*, *_vs_rel_improvement.png).
+  Figures from 03_modeling/ and district_level_delta.ipynb are current.
+================================================================================
+
+
+20. THE ZERO CONDITION, TESTED PROPERLY
+--------------------------------------------------------------------------------
+  ZERO = keep every row, but overwrite yield with 0 where gcvi_mean == 0
+         (the original notebook behaviour, see section 15)
+  KEEP = keep every row, keep the REAL yield (current notebooks)
+
+  Same test in both cases: collapse each state to ONE delta_r = r_mask - r_raw
+  over all its district-years, then a one-sample t-test on the 27 state values
+  against zero. Unit of observation is the STATE. See section 14 for why the
+  per-state p-values in gcvi_yield_correlation.csv must not be used instead.
+
+                                   ZERO        KEEP
+    n states                         27          27
+    mean delta_r                +0.4383     +0.1920
+    sd                           0.4148      0.3341
+    SE                           0.0798      0.0643
+    t  (df 26)                    +5.49       +2.99
+    p                          0.000004      0.0061
+    95% CI                 [+.274,+.602] [+.060,+.324]
+    Wilcoxon p                  <0.0001      0.0032
+    sign test                23/27 .0003  20/27 .0192
+    Shapiro W (p)           0.930 (.068) 0.968 (.545)
+    skew                          +0.61       -0.10
+    range                  [-.082,+1.328] [-.691,+1.010]
+
+  THE EFFECT IS POSITIVE AND SIGNIFICANT UNDER BOTH. That conclusion does not
+  depend on the handling. What ZERO does is:
+    - inflate the magnitude 2.3x (+0.438 vs +0.192)
+    - drop p by three orders of magnitude
+    - skew the distribution upward (skew +0.61, Shapiro p = 0.068 borderline),
+      because the artifact can only ever push delta_r UP, never down
+    - reverse the SIGN for three states
+  The two confidence intervals barely overlap.
+
+  15 OF 27 STATES ARE IDENTICAL under both handlings -- they have no, or
+  negligible, empty-mask rows. Anything concluded from these is unaffected by
+  this entire question:
+    Chhattisgarh +0.427   West Bengal +0.323   Meghalaya +0.279
+    Andhra Pradesh +0.255 Telangana +0.253     Odisha +0.202
+    Puducherry +0.157     Jharkhand +0.149     Assam +0.029
+    Bihar +0.026          Punjab -0.045        Tripura -0.057
+    Chandigarh -0.082
+
+  THE 12 STATES THAT MOVE -- every shift is NEGATIVE; ZERO never deflates:
+
+    state              n  zeroed   dZERO   dKEEP    shift
+    Manipur           94      48  +1.328  +1.010   -0.318
+    Nagaland         132      60  +1.244  +0.406   -0.838
+    Rajasthan        243     204  +1.079  +0.776   -0.303
+    Mizoram           96      24  +0.968  +0.506   -0.462
+    Karnataka        347      73  +0.927  +0.382   -0.545
+    Kerala           156      12  +0.849  +0.303   -0.546
+    Uttarakhand      156      60  +0.758  +0.540   -0.218
+    Gujarat          247     276  +0.623  +0.133   -0.490
+    Himachal Pradesh 131      36  +0.572  +0.149   -0.423
+    Uttar Pradesh    888     132  +0.515  -0.144   -0.660
+    Madhya Pradesh   570     168  +0.514  +0.274   -0.240
+    Tamil Nadu       382      24  +0.486  -0.037   -0.523
+    Telangana        311      12  +0.253  +0.253   +0.000
+    Puducherry        36      12  +0.157  +0.157   +0.000
+    Haryana          250      48  +0.120  -0.340   -0.460
+    Maharashtra      289      96  -0.064  -0.691   -0.627
+
+  SIGN FLIPS: Uttar Pradesh +0.515 -> -0.144, Tamil Nadu +0.486 -> -0.037,
+  Haryana +0.120 -> -0.340. All three go from apparent gain to loss.
+
+  KERALA is the sharpest illustration of how little it takes: 12 zeroed rows out
+  of 156 -- under 8% -- swing its delta_r from +0.849 to +0.303. Twelve
+  fabricated points at the origin move the correlation by half an r-unit.
+
+  WHY IT INFLATES. Zeroed rows sit at exactly (gcvi 0, yield 0) while normal
+  rows sit at positive values in both. A line through two separated clusters has
+  a high r no matter what happens inside either cluster. Nagaland had 46% of its
+  rows at the origin; its masked r reads 0.950 under ZERO and 0.112 under KEEP.
+
+  Data: outputs/zero_vs_keep_delta.csv (per state, both handlings).
+  Sections 14 and 16 and the figures listed as stale in section 19 are all built
+  on ZERO. Section 17 tables a third handling (COMMON, drop the rows).
+================================================================================
