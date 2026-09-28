@@ -449,6 +449,7 @@ Sources: outputs/state_scorecard.csv, logo_cv_all_states.csv,
   gcvi_yield_heatmap.png                §14  pooled r by state x mask
   map_delta_by_state.png                §14  India map of pooled dr
   census_vs_map_entropy.png             §9   census vs map entropy, the circularity check
+  gcvi_2023_300m_scatter.png            §21  2023, 300 m: ESRI / Jordi-1 & -20 / 20-vs-1
 
   other figures present (per-state violins, TIF visualisations, scatters):
   census_entropy_vs_rel_improvement.png, cv_vs_entropy_rel_improvement.png, delta_r2_vs_agreement.png, delta_r2_vs_baseline.png, delta_vs_agreement.png, delta_vs_baseline.png  ... and 69 more
@@ -538,4 +539,126 @@ Sources: outputs/state_scorecard.csv, logo_cv_all_states.csv,
   Data: outputs/zero_vs_keep_delta.csv (per state, both handlings).
   Sections 14 and 16 and the figures listed as stale in section 19 are all built
   on ZERO. Section 17 tables a third handling (COMMON, drop the rows).
+================================================================================
+
+
+21. 2023 ONLY -- 300 m AND 500 m, TWO JORDI MASKS
+--------------------------------------------------------------------------------
+  Notebook: notebooks/02_mask_analysis/gcvi_2023_300m.ipynb
+  Setup: 2023 only (the year Jordi's crop-type map was built for). One Pearson r
+  per state across its districts, so n per state = number of districts with both
+  a 2023 yield and a GCVI value. KEEP handling (empty mask -> gcvi_mean = 0, real
+  yield kept). Per-state r needs >= 4 districts.
+  States: 27 with files. Chandigarh (1 district) and Puducherry (3) give no r, so
+  the t-tests use n = 25 states. Test: one-sample t on per-state delta r vs 0.
+
+  Conditions
+    300 m : raw, ESRI cropland, Jordi 1-model (single national model),
+            Jordi 20-models (20 regional models)
+    500 m : raw, ESRI cropland, Jordi 20-models  (no 500 m 1-model export).
+            Values from gcvi_district_cache.csv, built 2026-09-09, before the
+            300 m download overwrote the 2023 .tif files (see caveat below).
+
+  300 m SUMMARY (n = 25)
+    comparison                 mean  median   95% CI           %+      t        p   Wilcox
+    ESRI - raw                +0.158  +0.067  [-0.014,+0.330]    68%  +1.90   0.0699   0.0851
+    Jordi 1-model - raw       +0.327  +0.279  [+0.157,+0.497]    88%  +3.96   0.0006   0.0001
+    Jordi 20-models - raw     +0.294  +0.285  [+0.088,+0.500]    84%  +2.94   0.0072   0.0012
+    Jordi 20 - Jordi 1        -0.033  +0.000  [-0.139,+0.073]    52%  -0.65   0.5247   0.6915
+
+  500 m SUMMARY (n = 25)
+    comparison                 mean  median   95% CI           %+      t        p   Wilcox
+    ESRI - raw                +0.205  +0.084  [+0.044,+0.366]    72%  +2.63   0.0148   0.0096
+    Jordi 20-models - raw     +0.335  +0.381  [+0.150,+0.520]    80%  +3.73   0.0010   0.0013
+
+  MEAN r ACROSS STATES (300 m): raw -0.045, ESRI +0.113, Jordi-1 +0.282,
+  Jordi-20 +0.249. States with p < 0.05: raw 7, ESRI 7, Jordi-1 10, Jordi-20 8
+  (of 25). Raw r is negative in 14 of 25 states at 300 m, 16 of 25 at 500 m.
+
+  PER STATE, 300 m (sorted by Jordi-20 gain)
+    state             n   r_raw  r_esri  r_j1    r_j20   d_j1    d_j20   j20-j1
+    Tripura            8  -0.921  +0.503  +0.445  +0.331  +1.366  +1.252  -0.114
+    Nagaland          11  -0.794  +0.089  +0.302  +0.344  +1.095  +1.138  +0.042
+    West Bengal       22  -0.354  +0.137  +0.548  +0.425  +0.902  +0.778  -0.123
+    Rajasthan         21  -0.432  -0.293  +0.039  +0.247  +0.471  +0.678  +0.207
+    Karnataka         29  -0.254  -0.168  +0.368  +0.421  +0.622  +0.675  +0.053
+    Kerala            13  -0.396  -0.382  -0.240  +0.274  +0.156  +0.670  +0.514
+    Himachal Pradesh  11  -0.141  -0.608  +0.478  +0.501  +0.619  +0.642  +0.023
+    Telangana         32  -0.009  +0.352  +0.473  +0.515  +0.482  +0.525  +0.043
+    Mizoram            8  -0.724  +0.031  -0.413  -0.209  +0.311  +0.515  +0.205
+    Chhattisgarh      26  +0.307  +0.684  +0.717  +0.724  +0.411  +0.417  +0.006
+    Andhra Pradesh    13  -0.229  -0.027  +0.012  +0.157  +0.241  +0.386  +0.145
+    Gujarat           22  -0.102  -0.016  +0.274  +0.229  +0.376  +0.331  -0.045
+    Odisha            30  -0.151  +0.236  +0.095  +0.133  +0.246  +0.285  +0.039
+    Uttarakhand       13  +0.226  -0.350  +0.505  +0.497  +0.279  +0.271  -0.009
+    Madhya Pradesh    49  +0.131  +0.050  +0.654  +0.394  +0.523  +0.263  -0.260
+    Bihar             37  +0.492  +0.526  +0.690  +0.639  +0.198  +0.147  -0.051
+    Assam             33  +0.068  +0.256  +0.192  +0.192  +0.124  +0.124  +0.000
+    Uttar Pradesh     74  +0.113  +0.166  +0.296  +0.197  +0.183  +0.084  -0.099
+    Jharkhand         24  -0.103  -0.205  -0.177  -0.084  -0.074  +0.019  +0.093
+    Manipur            4  -0.461  -0.393  -0.160  -0.443  +0.300  +0.017  -0.283
+    Punjab            22  +0.660  +0.694  +0.687  +0.663  +0.027  +0.002  -0.025
+    Meghalaya         11  +0.171  -0.007  +0.249  +0.171  +0.078  -0.000  -0.078
+    Tamil Nadu        35  +0.238  +0.217  +0.349  +0.127  +0.110  -0.111  -0.222
+    Haryana           22  +0.868  +0.755  +0.138  +0.233  -0.731  -0.635  +0.095
+    Maharashtra       22  +0.673  +0.580  +0.535  -0.450  -0.138  -1.123  -0.985
+
+  PER STATE, 500 m vs 300 m (Jordi-20 gain = r_jordi20 - r_raw)
+    state             n  raw500  raw300  j20_500 j20_300  d500    d300
+    Tripura            8  -0.960  -0.921  -0.027  +0.331  +0.933  +1.252
+    Nagaland          11  -0.539  -0.794  +0.392  +0.344  +0.931  +1.138
+    West Bengal       22  -0.377  -0.354  +0.172  +0.425  +0.549  +0.778
+    Rajasthan         21  -0.439  -0.432  +0.318  +0.247  +0.757  +0.678
+    Karnataka         29  -0.239  -0.254  +0.372  +0.421  +0.611  +0.675
+    Kerala            13  -0.490  -0.396  +0.242  +0.274  +0.732  +0.670
+    Himachal Pradesh  11  -0.295  -0.141  +0.514  +0.501  +0.809  +0.642
+    Telangana         32  -0.058  -0.009  +0.468  +0.515  +0.525  +0.525
+    Mizoram            8  -0.629  -0.724  +0.119  -0.209  +0.748  +0.515
+    Chhattisgarh      26  +0.276  +0.307  +0.709  +0.724  +0.434  +0.417
+    Andhra Pradesh    13  -0.210  -0.229  +0.171  +0.157  +0.381  +0.386
+    Gujarat           22  -0.141  -0.102  +0.214  +0.229  +0.355  +0.331
+    Odisha            30  -0.021  -0.151  +0.241  +0.133  +0.262  +0.285
+    Uttarakhand       13  +0.155  +0.226  +0.462  +0.497  +0.307  +0.271
+    Madhya Pradesh    49  +0.119  +0.131  +0.617  +0.394  +0.498  +0.263
+    Bihar             37  +0.488  +0.492  +0.632  +0.639  +0.144  +0.147
+    Assam             33  -0.021  +0.068  +0.111  +0.192  +0.131  +0.124
+    Uttar Pradesh     74  +0.133  +0.113  +0.220  +0.197  +0.087  +0.084
+    Jharkhand         24  -0.125  -0.103  -0.150  -0.084  -0.025  +0.019
+    Manipur            4  -0.252  -0.461  +0.428  -0.443  +0.680  +0.017
+    Punjab            22  +0.687  +0.660  +0.679  +0.663  -0.008  +0.002
+    Meghalaya         11  -0.091  +0.171  +0.083  +0.171  +0.174  -0.000
+    Tamil Nadu        35  +0.205  +0.238  +0.051  +0.127  -0.155  -0.111
+    Haryana           22  +0.872  +0.868  +0.350  +0.233  -0.522  -0.635
+    Maharashtra       22  +0.681  +0.673  -0.282  -0.450  -0.963  -1.123
+
+  RESOLUTION SHIFT (300 m minus 500 m, per state, n = 25)
+    condition          mean shift  mean |shift|     p    r(500m, 300m) across states
+    raw                  +0.006       0.069       0.777        +0.974
+    ESRI                 -0.041       0.088       0.246        +0.890
+    Jordi 20-models      -0.035       0.125       0.435        +0.695
+
+  FACTUAL SUMMARY
+    - Jordi-1 minus raw: +0.327 (p = 0.0006, 88% of states positive), 300 m.
+    - Jordi-20 minus raw: +0.294 (p = 0.0072) at 300 m; +0.335 (p = 0.0010) at 500 m.
+    - Jordi-20 minus Jordi-1: -0.033 (p = 0.525), 52% of states positive.
+    - ESRI minus raw: +0.158 (p = 0.070) at 300 m; +0.205 (p = 0.015) at 500 m.
+    - Largest 20-vs-1 differences: Maharashtra -0.985, Kerala +0.514,
+      Manipur -0.283, Madhya Pradesh -0.260, Tamil Nadu -0.222, Rajasthan +0.207.
+    - States with negative Jordi-20 gain at 300 m: Maharashtra -1.123,
+      Haryana -0.635, Tamil Nadu -0.111, Meghalaya -0.000.
+    - Largest resolution swings are on small states: Manipur (4 districts) Jordi-20
+      r +0.428 at 500 m vs -0.443 at 300 m; Tripura (8) -0.027 vs +0.331.
+
+  CAVEATS
+    - Single year: each state's r rests on 4-74 districts. Manipur (4), Tripura (8)
+      and Mizoram (8) are the smallest.
+    - The 300 m download OVERWROTE the 2023 _raw/_esri/_jordi.tif files for 22
+      states (now 300 m; all other years 500 m). gcvi_district_cache.csv predates
+      this and is unaffected, but regenerating it would mix resolutions in 2023.
+    - The Jordi map's vintage (2023) comes from the user; it is not recorded in
+      the repo or the asset metadata checked so far.
+    - Outputs: gcvi_2023_300m_correlation.csv, gcvi_2023_300m_summary.csv,
+      gcvi_2023_500m_correlation.csv, gcvi_2023_500m_summary.csv,
+      gcvi_2023_500m_vs_300m.csv, gcvi_2023_300m_district_panel.csv,
+      gcvi_2023_300m_scatter.png
 ================================================================================

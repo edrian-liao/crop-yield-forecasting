@@ -1,0 +1,26 @@
+state,ESRI cropland,"Jordi, 1 model","Jordi, 20 models",raw
+Andhra Pradesh,False,False,False,False
+Assam,False,False,False,False
+Bihar,True,True,True,True
+Chhattisgarh,True,True,True,False
+Gujarat,False,False,False,False
+Haryana,True,False,False,True
+Himachal Pradesh,False,False,False,False
+Jharkhand,False,False,False,False
+Karnataka,False,False,False,False
+Kerala,False,False,False,False
+Madhya Pradesh,False,True,True,False
+Maharashtra,True,True,False,True
+Manipur,False,False,False,False
+Meghalaya,False,False,False,False
+Mizoram,False,False,False,False
+Nagaland,False,False,False,True
+Odisha,False,False,False,False
+Punjab,True,True,True,True
+Rajasthan,False,False,False,False
+Tamil Nadu,False,False,False,False
+Telangana,False,True,True,False
+Tripura,False,False,False,True
+Uttar Pradesh,False,True,False,False
+Uttarakhand,False,False,False,False
+West Bengal,False,True,False,False
